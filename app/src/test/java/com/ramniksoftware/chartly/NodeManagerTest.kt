@@ -333,4 +333,38 @@ class NodeManagerTest {
         assertEquals(1, updatedParent?.childrenIds?.size)
         assertEquals(child.id, updatedParent?.childrenIds?.get(0))
     }
+
+    @Test
+    fun `updateNodeContent replaces the content string of an existing node`() {
+        // 1. Arrange
+        val originalNode = Node(content = "Original Content")
+        nodeManager.addNode(originalNode)
+
+        // 2. Act
+        val updatedText = "Updated Content"
+        nodeManager.updateNodeContent(originalNode.id, updatedText)
+
+        // 3. Assert
+        val retrieved = nodeManager.getNode(originalNode.id)
+        assertEquals(updatedText, retrieved?.content)
+    }
+
+    @Test
+    fun `updateNodeContent preserves node hierarchy and metadata`() {
+        // 1. Arrange
+        val parent = Node(content = "Parent")
+        val child = Node(content = "Child")
+        nodeManager.addNode(parent)
+        nodeManager.addNode(child, parent = parent)
+
+        // 2. Act
+        nodeManager.updateNodeContent(parent.id, "New Parent Name")
+
+        // 3. Assert
+        val updatedParent = nodeManager.getNode(parent.id)
+        assertEquals(1, updatedParent?.childrenIds?.size)
+        assertEquals(child.id, updatedParent?.childrenIds?.get(0))
+        // Expansion state should also be preserved
+        assertTrue(updatedParent?.isExpanded == true)
+    }
 }

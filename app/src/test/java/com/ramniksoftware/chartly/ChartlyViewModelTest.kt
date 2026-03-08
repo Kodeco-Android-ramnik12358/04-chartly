@@ -146,4 +146,43 @@ class ChartlyViewModelTest {
         viewModel.toggleExpansion(parent.id)
         assertEquals(2, viewModel.uiState.value.items.size)
     }
+
+    @Test
+    fun `updateNodeContent in ViewModel updates the UI State immediately`() = runTest {
+        // 1. Arrange
+        val node = Node(content = "Before")
+        nodeManager.addNode(node)
+
+        // Initialize VM after adding node to avoid the "stale state" issue
+        val viewModel = createViewModel()
+
+        // Initial check
+        assertEquals("Before", viewModel.uiState.value.items[0].node.content)
+
+        // 2. Act
+        val newText = "After"
+        viewModel.updateNodeContent(node.id, newText)
+
+        // 3. Assert
+        val items = viewModel.uiState.value.items
+        assertEquals(1, items.size)
+        assertEquals(newText, items[0].node.content)
+    }
+
+    @Test
+    fun `updating content does not change the selectedNodeId`() = runTest {
+        // 1. Arrange
+        val node = Node(content = "Keep Selection")
+        nodeManager.addNode(node)
+
+        val viewModel = createViewModel()
+        viewModel.selectNode(node.id)
+
+        // 2. Act
+        viewModel.updateNodeContent(node.id, "Still Selected")
+
+        // 3. Assert
+        assertEquals(node.id, viewModel.uiState.value.selectedNodeId)
+        assertEquals("Still Selected", viewModel.uiState.value.items[0].node.content)
+    }
 }

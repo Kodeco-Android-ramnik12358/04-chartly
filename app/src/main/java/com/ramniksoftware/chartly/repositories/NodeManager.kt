@@ -111,4 +111,9 @@ class NodeManager {
         val node = allNodes[nodeId] ?: return
         allNodes[nodeId] = node.copy(isExpanded = !node.isExpanded)
     }
+
+    fun updateNodeContent(nodeId: UUID, newContent: String) {
+        val node = allNodes[nodeId] ?: return
+        allNodes[nodeId] = node.copy(content = newContent)
+    }
 }

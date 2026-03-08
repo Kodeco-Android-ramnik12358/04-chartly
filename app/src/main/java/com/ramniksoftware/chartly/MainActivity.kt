@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -34,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ramniksoftware.chartly.model.Node
@@ -98,6 +101,9 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
                 ChartlyRow(
                     flattenedNode = item,
                     isSelected = state.selectedNodeId == item.node.id,
+                    onContentChange = { newText ->
+                        viewModel.updateNodeContent(item.node.id, newText)
+                    },
                     onToggleExpand = { viewModel.toggleExpansion(item.node.id)},
                     onClick = { viewModel.selectNode(item.node.id) }
                 )
@@ -110,7 +116,8 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
 fun ChartlyRow(
     flattenedNode: FlattenedNode,
     isSelected: Boolean,
-    onToggleExpand: () -> Unit, // New callback
+    onContentChange: (String) -> Unit,
+    onToggleExpand: () -> Unit,
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
@@ -126,8 +133,8 @@ fun ChartlyRow(
             .clickable { onClick() }
             .padding(
                 start = (flattenedNode.depth * 24).dp,
-                top = 4.dp,
-                bottom = 4.dp,
+                top = 0.dp,
+                bottom = 0.dp,
                 end = 8.dp
             ),
         verticalAlignment = Alignment.CenterVertically
@@ -158,10 +165,16 @@ fun ChartlyRow(
         }
 
         // 3. The Content
-        Text(
-            text = flattenedNode.node.content,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
+        BasicTextField(
+            value = flattenedNode.node.content,
+            onValueChange = onContentChange,
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 8.dp), // Slightly more vertical padding for easier tapping
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         )
     }
 }

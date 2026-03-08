@@ -42,6 +42,12 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
         refreshState()
     }
 
+    fun updateNodeContent(nodeId: UUID, newContent: String) {
+        nodeManager.updateNodeContent(nodeId, newContent)
+        // We refresh the state so the flattened list has the latest content
+        refreshState()
+    }
+
     private fun refreshState() {
         val rootNodes = nodeManager.getRootNodes()
         val flatList = mutableListOf<FlattenedNode>()
@@ -51,7 +57,7 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
             flatten(root, 0, flatList)
         }
 
-        _uiState.value = ChartlyUiState(items = flatList)
+        _uiState.value = ChartlyUiState(items = flatList, selectedNodeId = _uiState.value.selectedNodeId)
     }
 
     private fun flatten(node: Node, depth: Int, result: MutableList<FlattenedNode>) {
