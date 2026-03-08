@@ -12,12 +12,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -91,6 +98,7 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
                 ChartlyRow(
                     flattenedNode = item,
                     isSelected = state.selectedNodeId == item.node.id,
+                    onToggleExpand = { viewModel.toggleExpansion(item.node.id)},
                     onClick = { viewModel.selectNode(item.node.id) }
                 )
             }
@@ -102,6 +110,7 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
 fun ChartlyRow(
     flattenedNode: FlattenedNode,
     isSelected: Boolean,
+    onToggleExpand: () -> Unit, // New callback
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
@@ -115,20 +124,47 @@ fun ChartlyRow(
             .fillMaxWidth()
             .background(backgroundColor)
             .clickable { onClick() }
-            // Dynamic padding based on depth
-            .padding(start = (flattenedNode.depth * 24).dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
+            .padding(
+                start = (flattenedNode.depth * 24).dp,
+                top = 4.dp,
+                bottom = 4.dp,
+                end = 8.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Canvas(modifier = Modifier.padding(horizontal = 12.dp).size(8.dp)) {
+        // 1. The Expansion Toggle
+        if (flattenedNode.node.childrenIds.isNotEmpty()) {
+            IconButton(
+                onClick = onToggleExpand,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = if (flattenedNode.node.isExpanded)
+                        Icons.Default.KeyboardArrowDown
+                    else
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = if (flattenedNode.node.isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            // Keep the indentation consistent even if there's no arrow
+            Spacer(modifier = Modifier.size(32.dp))
+        }
+
+        // 2. The Bullet (Canvas)
+        Canvas(modifier = Modifier.padding(end = 12.dp).size(8.dp)) {
             drawCircle(color = Color.Gray)
         }
+
+        // 3. The Content
         Text(
             text = flattenedNode.node.content,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
         )
     }
 }
-
 @Preview(showBackground = true)
 @Composable
 fun ChartlyPreview() {
