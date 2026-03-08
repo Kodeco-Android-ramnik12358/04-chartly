@@ -4,7 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -61,12 +63,15 @@ fun ChartlyScreen(
     val state by viewModel.uiState.collectAsState()
 
     LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(state.items) { node ->
-            Text(
-                text = "• ${node.content}",
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodyLarge
-            )
+        items(state.items) { item ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = (item.depth * 24).dp, top = 8.dp, bottom = 8.dp)
+            ) {
+                Text("•", modifier = Modifier.padding(end = 8.dp))
+                Text(text = item.node.content)
+            }
         }
     }
 }

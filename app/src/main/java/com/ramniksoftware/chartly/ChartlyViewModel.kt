@@ -1,6 +1,7 @@
 package com.ramniksoftware.chartly
 
 import androidx.lifecycle.ViewModel
+import com.ramniksoftware.chartly.model.Node
 import com.ramniksoftware.chartly.repositories.NodeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,21 +10,35 @@ import java.util.UUID
 
 class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
 
-    // 1. The "Source of Truth" for the UI
-    private val _uiState = MutableStateFlow(ChartlyUIState())
-    val uiState: StateFlow<ChartlyUIState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(ChartlyUiState())
+    val uiState: StateFlow<ChartlyUiState> = _uiState.asStateFlow()
 
     init {
-        loadData()
+        refreshState()
     }
 
-    private fun loadData() {
-        // 2. Fetch the root nodes from our manager
-        val roots = nodeManager.getRootNodes()
-        // 3. Push them into the UI State
-        _uiState.value = ChartlyUIState(items = roots)
+    private fun refreshState() {
+        val rootNodes = nodeManager.getRootNodes()
+        val flatList = mutableListOf<FlattenedNode>()
+
+        // For every root, kick off the recursive flattening
+        rootNodes.forEach { root ->
+            flatten(root, 0, flatList)
+        }
+
+        _uiState.value = ChartlyUiState(items = flatList)
     }
 
-    // A helper for the UI to find children
-    fun getNodeById(id: UUID) = nodeManager.getNode(id)
+    private fun flatten(node: Node, depth: Int, result: MutableList<FlattenedNode>) {
+        // 1. Add the current node
+        result.add(FlattenedNode(node, depth))
+
+        // 2. Recursively add all children, incrementing the depth
+        node.childrenIds.forEach { childId ->
+            val childNode = nodeManager.getNode(childId)
+            if (childNode != null) {
+                flatten(childNode, depth + 1, result)
+            }
+        }
+    }
 }
