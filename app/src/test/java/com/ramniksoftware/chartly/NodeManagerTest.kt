@@ -2,11 +2,11 @@ package com.ramniksoftware.chartly
 
 import com.ramniksoftware.chartly.model.Node
 import com.ramniksoftware.chartly.repositories.NodeManager
-import junit.framework.TestCase.assertEquals
-import junit.framework.TestCase.assertFalse
-import junit.framework.TestCase.assertNotNull
-import junit.framework.TestCase.assertNull
-import junit.framework.TestCase.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.util.UUID
@@ -179,7 +179,7 @@ class NodeManagerTest {
 
         // 3. Assert: Hierarchy remains unchanged
         val root1 = nodeManager.getNode(firstRoot.id)
-        assertNull("First node should still have no parent", root1?.parentId)
+        assertNull(root1?.parentId)
         assertEquals(0, root1?.childrenIds?.size)
 
         // Ensure it's still at the top of the root list
@@ -213,5 +213,85 @@ class NodeManagerTest {
         // Child 2.1 is STILL under Root 2
         assertEquals(r2.id, updatedC2_1?.parentId)
         assertTrue(updatedR2!!.childrenIds.contains(c2_1.id))
+    }
+
+    @Test
+    fun `outdentNode moves child to become sibling of its parent`() {
+        // 1. Arrange: Root -> Child
+        val root = Node(content = "Parent")
+        val child = Node(content = "Child to Outdent")
+        nodeManager.addNode(root)
+        nodeManager.addNode(child, parent = root)
+
+        // 2. Act
+        nodeManager.outdentNode(child.id)
+
+        // 3. Assert
+        val updatedChild = nodeManager.getNode(child.id)
+        val updatedRoot = nodeManager.getNode(root.id)
+
+        // Child should now be a root (parentId is null)
+        assertNull(updatedChild?.parentId)
+        // Parent should no longer have this child
+        assertFalse(updatedRoot!!.childrenIds.contains(child.id))
+        // Child should be in the root list
+        assertTrue(nodeManager.getRootNodes().map { it.id }.contains(child.id))
+    }
+
+    @Test
+    fun `outdentNode moves node from level 2 to level 1`() {
+        // 1. Arrange: G-Parent -> Parent -> Child
+        val gp = Node(content = "Grandparent")
+        val p = Node(content = "Parent")
+        val c = Node(content = "Child")
+        nodeManager.addNode(gp)
+        nodeManager.addNode(p, parent = gp)
+        nodeManager.addNode(c, parent = p)
+
+        // 2. Act
+        nodeManager.outdentNode(c.id)
+
+        // 3. Assert
+        val updatedChild = nodeManager.getNode(c.id)
+        assertEquals("Child should now be a child of Grandparent", gp.id, updatedChild?.parentId)
+
+        val updatedGP = nodeManager.getNode(gp.id)
+        assertTrue(updatedGP!!.childrenIds.contains(c.id))
+    }
+
+    @Test
+    fun `outdentNode does nothing if node is already a root`() {
+        // 1. Arrange
+        val root = Node(content = "I am already root")
+        nodeManager.addNode(root)
+
+        // 2. Act
+        nodeManager.outdentNode(root.id)
+
+        // 3. Assert: State is unchanged
+        val retrieved = nodeManager.getNode(root.id)
+        assertNull(retrieved?.parentId)
+        assertTrue(nodeManager.getRootNodes().contains(retrieved))
+    }
+
+    @Test
+    fun `outdentNode moves the entire subtree`() {
+        // 1. Arrange: Root -> Parent -> Child
+        val r = Node(content = "Root")
+        val p = Node(content = "Parent")
+        val c = Node(content = "Child")
+        nodeManager.addNode(r)
+        nodeManager.addNode(p, parent = r)
+        nodeManager.addNode(c, parent = p)
+
+        // 2. Act: Outdent 'Parent'
+        nodeManager.outdentNode(p.id)
+
+        // 3. Assert
+        val updatedP = nodeManager.getNode(p.id)
+        val updatedC = nodeManager.getNode(c.id)
+
+        assertNull(updatedP?.parentId) // Parent is now root
+        assertEquals(p.id, updatedC?.parentId) // Child is STILL under Parent
     }
 }

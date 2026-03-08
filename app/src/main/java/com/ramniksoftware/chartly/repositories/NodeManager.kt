@@ -75,4 +75,35 @@ class NodeManager {
             )
         }
     }
+
+    fun outdentNode(nodeId: UUID) {
+        val targetNode = allNodes[nodeId] ?: return
+        val currentParentId = targetNode.parentId ?: return // Rule: Can't outdent a root
+
+        val currentParent = allNodes[currentParentId] ?: return
+        val grandparentId = currentParent.parentId
+
+        // 1. Remove node from the current parent's children
+        allNodes[currentParentId] = currentParent.copy(
+            childrenIds = currentParent.childrenIds - nodeId
+        )
+
+        // 2. Determine the new home (Grandparent's children or Root list)
+        if (grandparentId == null) {
+            // Move to root: land it right after the former parent
+            val parentIndexInRoot = rootIds.indexOf(currentParentId)
+            rootIds.add(parentIndexInRoot + 1, nodeId)
+            allNodes[nodeId] = targetNode.copy(parentId = null)
+        } else {
+            // Move to grandparent: land it right after the former parent in GP's list
+            val grandparent = allNodes[grandparentId] ?: return
+            val parentIndexInGP = grandparent.childrenIds.indexOf(currentParentId)
+
+            val newChildrenList = grandparent.childrenIds.toMutableList()
+            newChildrenList.add(parentIndexInGP + 1, nodeId)
+
+            allNodes[grandparentId] = grandparent.copy(childrenIds = newChildrenList)
+            allNodes[nodeId] = targetNode.copy(parentId = grandparentId)
+        }
+    }
 }
