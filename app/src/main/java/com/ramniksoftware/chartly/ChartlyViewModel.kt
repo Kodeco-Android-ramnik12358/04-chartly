@@ -16,7 +16,7 @@ data class FlattenedNode(
 
 data class ChartlyUiState(
     val items: List<FlattenedNode> = emptyList(),
-    val selectedNodeId: UUID? = null
+    val focusedNodeId: UUID? = null
 )
 
 class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
@@ -28,18 +28,18 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
         refreshState()
     }
 
-    fun selectNode(id: UUID?) {
-        _uiState.update { it.copy(selectedNodeId = id) }
+    fun setFocusedNode(id: UUID?) {
+        _uiState.update { it.copy(focusedNodeId = id) }
     }
 
-    fun indentSelectedNode() {
-        val id = _uiState.value.selectedNodeId ?: return
+    fun indentFocusedNode() {
+        val id = _uiState.value.focusedNodeId ?: return
         nodeManager.indentNode(id)
         refreshState()
     }
 
-    fun outdentSelectedNode() {
-        val id = _uiState.value.selectedNodeId ?: return
+    fun outdentFocusedNode() {
+        val id = _uiState.value.focusedNodeId ?: return
         nodeManager.outdentNode(id)
         refreshState()
     }
@@ -67,7 +67,7 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
             flatten(root, 0, flatList)
         }
 
-        _uiState.value = ChartlyUiState(items = flatList, selectedNodeId = _uiState.value.selectedNodeId)
+        _uiState.value = ChartlyUiState(items = flatList, focusedNodeId = _uiState.value.focusedNodeId)
     }
 
     private fun flatten(node: Node, depth: Int, result: MutableList<FlattenedNode>) {

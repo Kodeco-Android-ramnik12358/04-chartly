@@ -56,70 +56,86 @@ class ChartlyViewModelTest {
     }
 
     @Test
-    fun `selectNode updates the uiState with the correct ID`() = runTest {
+    fun `setFocusedNode updates the uiState with the correct ID`() = runTest {
         val viewModel = createViewModel()
         val testId = UUID.randomUUID()
 
         // Act
-        viewModel.selectNode(testId)
+        viewModel.setFocusedNode(testId)
 
         // Assert
-        assertEquals(testId, viewModel.uiState.value.selectedNodeId)
+        assertEquals(testId, viewModel.uiState.value.focusedNodeId)
     }
 
     @Test
-    fun `indentSelectedNode calls manager and refreshes state`() = runTest {
+    fun `updating content does not clear the focusedNodeId`() = runTest {
         // 1. Arrange
-        val root1 = Node(content = "Root 1")
-        val root2 = Node(content = "Root 2")
+        val node = Node(content = "Original")
+        nodeManager.addNode(node)
+        val viewModel = createViewModel()
+        viewModel.setFocusedNode(node.id)
+
+        // 2. Act: User types into the focused field
+        viewModel.updateNodeContent(node.id, "Updated")
+
+        // 3. Assert: The ID must remain the same so the Bottom Bar stays visible
+        assertEquals(node.id, viewModel.uiState.value.focusedNodeId)
+    }
+
+    @Test
+    fun `indentFocusedNode correctly indents the node currently holding focus`() = runTest {
+        // 1. Arrange: Two root nodes
+        val root1 = Node(content = "R1")
+        val root2 = Node(content = "R2")
         nodeManager.addNode(root1)
         nodeManager.addNode(root2)
 
         val viewModel = createViewModel()
-        viewModel.selectNode(root2.id)
 
-        // 2. Act
-        viewModel.indentSelectedNode()
+        // 2. Act: Set focus to R2 and indent
+        viewModel.setFocusedNode(root2.id)
+        viewModel.indentFocusedNode()
 
-        // 3. Assert
+        // 3. Assert: R2 should now be at depth 1
         val items = viewModel.uiState.value.items
-        assertEquals(2, items.size)
-        assertEquals("Root 2", items[1].node.content)
+        assertEquals("R2", items[1].node.content)
         assertEquals(1, items[1].depth)
     }
 
     @Test
-    fun `outdentSelectedNode calls manager and refreshes state`() = runTest {
-        // 1. Arrange
+    fun `indentFocusedNode does nothing if focusedNodeId is null`() = runTest {
+        nodeManager.addNode(Node(content = "Test"))
+        val viewModel = createViewModel()
+
+        // Ensure focus is null
+        viewModel.setFocusedNode(null)
+
+        // Act
+        viewModel.indentFocusedNode()
+
+        // Assert: No changes should have occurred to the depth
+        assertEquals(0, viewModel.uiState.value.items[0].depth)
+    }
+
+    @Test
+    fun `outdentFocusedNode calls manager and refreshes state`() = runTest {
+        // 1. Arrange: Parent -> Child
         val root = Node(content = "Parent")
         val child = Node(content = "Child")
         nodeManager.addNode(root)
         nodeManager.addNode(child, parent = root)
 
         val viewModel = createViewModel()
-        viewModel.selectNode(child.id)
 
-        // 2. Act
-        viewModel.outdentSelectedNode()
+        // Set focus to the child node
+        viewModel.setFocusedNode(child.id)
 
-        // 3. Assert
+        // 2. Act: Outdent the child while it has focus
+        viewModel.outdentFocusedNode()
+
+        // 3. Assert: Both should now be depth 0 (siblings)
         val items = viewModel.uiState.value.items
-        assertTrue(items.all { it.depth == 0 })
-    }
-
-    @Test
-    fun `indentSelectedNode does nothing if no node is selected`() = runTest {
-        // 1. Arrange
-        nodeManager.addNode(Node(content = "Test"))
-        val viewModel = createViewModel()
-
-        // 2. Act
-        viewModel.indentSelectedNode()
-
-        // 3. Assert
-        val items = viewModel.uiState.value.items
-        assertEquals(1, items.size)
-        assertEquals(0, items[0].depth)
+        assertTrue("All items should be at root depth", items.all { it.depth == 0 })
     }
 
     @Test
@@ -167,22 +183,5 @@ class ChartlyViewModelTest {
         val items = viewModel.uiState.value.items
         assertEquals(1, items.size)
         assertEquals(newText, items[0].node.content)
-    }
-
-    @Test
-    fun `updating content does not change the selectedNodeId`() = runTest {
-        // 1. Arrange
-        val node = Node(content = "Keep Selection")
-        nodeManager.addNode(node)
-
-        val viewModel = createViewModel()
-        viewModel.selectNode(node.id)
-
-        // 2. Act
-        viewModel.updateNodeContent(node.id, "Still Selected")
-
-        // 3. Assert
-        assertEquals(node.id, viewModel.uiState.value.selectedNodeId)
-        assertEquals("Still Selected", viewModel.uiState.value.items[0].node.content)
     }
 }
