@@ -8,6 +8,7 @@ import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.UUID
 
 class NodeManagerTest {
 
@@ -67,5 +68,60 @@ class NodeManagerTest {
         assertTrue(updatedParent!!.childrenIds.contains(child.id))
         // Verify the child knows about the parent
         assertEquals(parent.id, updatedChild!!.parentId)
+    }
+
+    @Test
+    fun `addNode supports deep nesting with correct bidirectional links`() {
+        // 1. Arrange: Create the hierarchy
+        val grandparent = Node(content = "Grandparent")
+        val parent = Node(content = "Parent")
+        val child = Node(content = "Child")
+
+        // 2. Act: Add them one by one
+        nodeManager.addNode(grandparent) // Level 0
+        nodeManager.addNode(parent, parent = grandparent) // Level 1
+        nodeManager.addNode(child, parent = parent) // Level 2
+
+        // 3. Assert: Verify Level 2 -> Level 1 link
+        val retrievedChild = nodeManager.getNode(child.id)
+        assertEquals(parent.id, retrievedChild?.parentId)
+
+        // 4. Assert: Verify Level 1 -> Level 2 link
+        val retrievedParent = nodeManager.getNode(parent.id)
+        assertTrue(retrievedParent!!.childrenIds.contains(child.id))
+        assertEquals(grandparent.id, retrievedParent.parentId)
+
+        // 5. Assert: Verify Level 0 -> Level 1 link
+        val retrievedGrandparent = nodeManager.getNode(grandparent.id)
+        assertTrue(retrievedGrandparent!!.childrenIds.contains(parent.id))
+        assertNull(retrievedGrandparent.parentId)
+    }
+
+    @Test
+    fun `addNode handles 50 levels of nesting`() {
+        var lastNode = Node(content = "Level 0")
+        nodeManager.addNode(lastNode)
+
+        for (i in 1..50) {
+            val newNode = Node(content = "Level $i")
+            nodeManager.addNode(newNode, parent = lastNode)
+            lastNode = newNode // Move down the tree
+        }
+
+        val deepNode = nodeManager.getNode(lastNode.id)
+        assertNotNull(deepNode)
+        assertEquals(50, getDepth(deepNode!!.id)) // Helper to count parents
+    }
+
+    /**
+     * Calculates depth by traversing up the parent chain.
+     * Root nodes have a depth of 0.
+     */
+    private fun getDepth(nodeId: UUID): Int {
+        val node = nodeManager.getNode(nodeId) ?: return 0
+        val parentId = node.parentId ?: return 0
+
+        // Recursive: 1 + depth of my parent
+        return 1 + getDepth(parentId)
     }
 }
