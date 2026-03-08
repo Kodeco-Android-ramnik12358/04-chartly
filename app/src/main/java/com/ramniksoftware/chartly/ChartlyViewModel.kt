@@ -34,6 +34,14 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
         refreshState()
     }
 
+    fun toggleExpansion(nodeId: UUID) {
+        // 1. Tell the manager to flip the bit
+        nodeManager.toggleExpansion(nodeId)
+
+        // 2. Immediately re-flatten the tree to reflect the change in the UI
+        refreshState()
+    }
+
     private fun refreshState() {
         val rootNodes = nodeManager.getRootNodes()
         val flatList = mutableListOf<FlattenedNode>()
@@ -51,11 +59,10 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
         result.add(FlattenedNode(node, depth))
 
         // 2. Recursively add all children, incrementing the depth
-        node.childrenIds.forEach { childId ->
-            val childNode = nodeManager.getNode(childId)
-            if (childNode != null) {
-                flatten(childNode, depth + 1, result)
+        // ONLY continue if the node is expanded
+        if (node.isExpanded) {
+            node.childrenIds.forEach { childId ->
+                nodeManager.getNode(childId)?.let { flatten(it, depth + 1, result) }
             }
         }
-    }
-}
+    }}

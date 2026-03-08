@@ -294,4 +294,43 @@ class NodeManagerTest {
         assertNull(updatedP?.parentId) // Parent is now root
         assertEquals(p.id, updatedC?.parentId) // Child is STILL under Parent
     }
+
+    @Test
+    fun `toggleExpansion flips the isExpanded state of a node`() {
+        // 1. Arrange
+        val node = Node(content = "Test Node", isExpanded = true)
+        nodeManager.addNode(node)
+
+        // 2. Act: Toggle to false
+        nodeManager.toggleExpansion(node.id)
+
+        // 3. Assert
+        val collapsedNode = nodeManager.getNode(node.id)
+        assertEquals(false, collapsedNode?.isExpanded)
+
+        // 4. Act: Toggle back to true
+        nodeManager.toggleExpansion(node.id)
+
+        // 5. Assert
+        val expandedNode = nodeManager.getNode(node.id)
+        assertEquals(true, expandedNode?.isExpanded)
+    }
+
+    @Test
+    fun `toggleExpansion preserves children and content`() {
+        // 1. Arrange
+        val parent = Node(content = "Parent")
+        val child = Node(content = "Child")
+        nodeManager.addNode(parent)
+        nodeManager.addNode(child, parent = parent)
+
+        // 2. Act
+        nodeManager.toggleExpansion(parent.id)
+
+        // 3. Assert
+        val updatedParent = nodeManager.getNode(parent.id)
+        assertEquals("Parent", updatedParent?.content)
+        assertEquals(1, updatedParent?.childrenIds?.size)
+        assertEquals(child.id, updatedParent?.childrenIds?.get(0))
+    }
 }

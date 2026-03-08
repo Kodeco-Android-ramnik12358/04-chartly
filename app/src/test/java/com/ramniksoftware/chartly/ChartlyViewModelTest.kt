@@ -121,4 +121,29 @@ class ChartlyViewModelTest {
         assertEquals(1, items.size)
         assertEquals(0, items[0].depth)
     }
+
+    @Test
+    fun `toggleExpansion in ViewModel updates the flattened list size`() = runTest {
+        // 1. Arrange: Parent -> Child
+        val parent = Node(content = "Parent")
+        nodeManager.addNode(parent)
+        nodeManager.addNode(Node(content = "Child"), parent = parent)
+
+        val viewModel = createViewModel()
+
+        // Initially, both should be visible
+        assertEquals(2, viewModel.uiState.value.items.size)
+
+        // 2. Act: Collapse the parent
+        viewModel.toggleExpansion(parent.id)
+
+        // 3. Assert: Only the parent should be in the list now
+        val items = viewModel.uiState.value.items
+        assertEquals(1, items.size)
+        assertEquals("Parent", items[0].node.content)
+
+        // 4. Act: Expand it again
+        viewModel.toggleExpansion(parent.id)
+        assertEquals(2, viewModel.uiState.value.items.size)
+    }
 }

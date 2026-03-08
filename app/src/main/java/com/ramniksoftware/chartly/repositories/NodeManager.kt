@@ -106,4 +106,9 @@ class NodeManager {
             allNodes[nodeId] = targetNode.copy(parentId = grandparentId)
         }
     }
+
+    fun toggleExpansion(nodeId: UUID) {
+        val node = allNodes[nodeId] ?: return
+        allNodes[nodeId] = node.copy(isExpanded = !node.isExpanded)
+    }
 }
