@@ -35,4 +35,44 @@ class NodeManager {
         // Use filterNotNull to ensure safety, though IDs should always exist
         return rootIds.mapNotNull { allNodes[it] }
     }
+
+    fun indentNode(nodeId: UUID) {
+        val targetNode = allNodes[nodeId] ?: return
+        val parentId = targetNode.parentId
+
+        // 1. Get the list of siblings where this node currently lives
+        val currentSiblings = if (parentId == null) {
+            rootIds
+        } else {
+            allNodes[parentId]?.childrenIds ?: return
+        }
+
+        // 2. Find the index of our node
+        val currentIndex = currentSiblings.indexOf(nodeId)
+
+        // 3. Edge Case: If it's the first child, it can't be indented (nothing to move under)
+        if (currentIndex <= 0) return
+
+        // 4. The node above it becomes the NEW parent
+        val newParentId = currentSiblings[currentIndex - 1]
+        val newParent = allNodes[newParentId] ?: return
+
+        // 5. Update the Node's parent reference
+        allNodes[nodeId] = targetNode.copy(parentId = newParentId)
+
+        // 6. Add the node to the new parent's children list
+        allNodes[newParentId] = newParent.copy(
+            childrenIds = newParent.childrenIds + nodeId
+        )
+
+        // 7. Remove the node from its old home
+        if (parentId == null) {
+            rootIds.remove(nodeId)
+        } else {
+            val oldParent = allNodes[parentId]!!
+            allNodes[parentId] = oldParent.copy(
+                childrenIds = oldParent.childrenIds - nodeId
+            )
+        }
+    }
 }
