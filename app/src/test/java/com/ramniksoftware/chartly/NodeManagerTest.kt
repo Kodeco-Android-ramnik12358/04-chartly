@@ -367,4 +367,68 @@ class NodeManagerTest {
         // Expansion state should also be preserved
         assertTrue(updatedParent?.isExpanded == true)
     }
+
+    @Test
+    fun `insertNodeAbove at root level places node at correct index`() {
+        // 1. Arrange: A, B
+        val nodeA = Node(content = "A")
+        val nodeB = Node(content = "B")
+        nodeManager.addNode(nodeA)
+        nodeManager.addNode(nodeB)
+
+        // 2. Act: Insert Above B
+        val newNode = nodeManager.insertNodeAbove(nodeB.id)
+
+        // 3. Assert: Order should be A, New, B
+        val roots = nodeManager.getRootNodes()
+        assertEquals(3, roots.size)
+        assertEquals(nodeA.id, roots[0].id)
+        assertEquals(newNode!!.id, roots[1].id)
+        assertEquals(nodeB.id, roots[2].id)
+        assertNull(newNode.parentId)
+    }
+
+    @Test
+    fun `insertNodeAbove nested level inherits parent and correct position`() {
+        // 1. Arrange: Root -> Child1
+        val root = Node(content = "Root")
+        val child1 = Node(content = "Child1")
+        nodeManager.addNode(root)
+        nodeManager.addNode(child1, parent = root)
+
+        // 2. Act: Insert Above Child1
+        val newNode = nodeManager.insertNodeAbove(child1.id)
+
+        // 3. Assert: Root's children should be [New, Child1]
+        val updatedRoot = nodeManager.getNode(root.id)!!
+        assertEquals(2, updatedRoot.childrenIds.size)
+        assertEquals(newNode!!.id, updatedRoot.childrenIds[0])
+        assertEquals(child1.id, updatedRoot.childrenIds[1])
+
+        // Verify the new node points to the parent
+        assertEquals(root.id, newNode.parentId)
+    }
+
+    @Test
+    fun `insertNodeAbove preserves content of existing nodes`() {
+        val nodeA = Node(content = "Stay Same")
+        nodeManager.addNode(nodeA)
+
+        nodeManager.insertNodeAbove(nodeA.id)
+
+        assertEquals("Stay Same", nodeManager.getNode(nodeA.id)?.content)
+    }
+
+    @Test
+    fun `insertNodeAbove returns null if targetId does not exist`() {
+        // 1. Arrange: An empty manager
+        val randomId = UUID.randomUUID()
+
+        // 2. Act
+        val result = nodeManager.insertNodeAbove(randomId)
+
+        // 3. Assert
+        assertNull("Should return null when the target node is missing", result)
+        assertTrue("Root IDs should remain empty", nodeManager.getRootNodes().isEmpty())
+    }
 }

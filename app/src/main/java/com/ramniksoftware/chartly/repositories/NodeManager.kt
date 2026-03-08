@@ -116,4 +116,37 @@ class NodeManager {
         val node = allNodes[nodeId] ?: return
         allNodes[nodeId] = node.copy(content = newContent)
     }
-}
+
+    fun insertNodeAbove(targetId: UUID): Node? {
+        // 1. If target doesn't exist, we can't determine where "above" is
+        val targetNode = allNodes[targetId] ?: return null
+
+        val newNode = Node(content = "", parentId = targetNode.parentId)
+        val parentId = targetNode.parentId
+
+        // 2. Register the new node
+        allNodes[newNode.id] = newNode
+
+        // 3. Update the hierarchy lists
+        if (parentId == null) {
+            val index = rootIds.indexOf(targetId)
+            if (index != -1) {
+                rootIds.add(index, newNode.id)
+            } else {
+                // Safety fallback: if for some reason it's in allNodes but not rootIds
+                rootIds.add(newNode.id)
+            }
+        } else {
+            val parent = allNodes[parentId] ?: return newNode
+            val currentChildren = parent.childrenIds
+            val index = currentChildren.indexOf(targetId)
+
+            val updatedChildren = currentChildren.toMutableList().apply {
+                if (index != -1) add(index, newNode.id) else add(newNode.id)
+            }
+
+            allNodes[parentId] = parent.copy(childrenIds = updatedChildren)
+        }
+
+        return newNode
+    }}
