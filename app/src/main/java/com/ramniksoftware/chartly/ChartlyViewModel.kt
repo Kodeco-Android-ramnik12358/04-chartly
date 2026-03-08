@@ -6,6 +6,7 @@ import com.ramniksoftware.chartly.repositories.NodeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.util.UUID
 
 class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
@@ -14,6 +15,22 @@ class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
     val uiState: StateFlow<ChartlyUiState> = _uiState.asStateFlow()
 
     init {
+        refreshState()
+    }
+
+    fun selectNode(id: UUID?) {
+        _uiState.update { it.copy(selectedNodeId = id) }
+    }
+
+    fun indentSelectedNode() {
+        val id = _uiState.value.selectedNodeId ?: return
+        nodeManager.indentNode(id)
+        refreshState()
+    }
+
+    fun outdentSelectedNode() {
+        val id = _uiState.value.selectedNodeId ?: return
+        nodeManager.outdentNode(id)
         refreshState()
     }
 
