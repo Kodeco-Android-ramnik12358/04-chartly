@@ -9,6 +9,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.UUID
 
+data class FlattenedNode(
+    val node: Node,
+    val depth: Int
+)
+
+data class ChartlyUiState(
+    val items: List<FlattenedNode> = emptyList(),
+    val selectedNodeId: UUID? = null
+)
+
 class ChartlyViewModel(private val nodeManager: NodeManager) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChartlyUiState())
