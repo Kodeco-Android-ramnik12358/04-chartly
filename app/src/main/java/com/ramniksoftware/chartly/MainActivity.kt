@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -77,11 +79,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChartlyScreen(viewModel: ChartlyViewModel) {
     val state by viewModel.uiState.collectAsState()
-    val isKeyboardVisible = WindowInsets.isImeVisible
+    val isKeyboardActive = WindowInsets.isImeActive
 
     Column(
         modifier = Modifier
@@ -97,6 +98,7 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
                 ChartlyRow(
                     flattenedNode = item,
                     onFocused = { viewModel.setFocusedNode(item.node.id) },
+                    onFocusCleared = { viewModel.setFocusedNode(null) },
                     onContentChange = { viewModel.updateNodeContent(item.node.id, it) },
                     onToggleExpand = { viewModel.toggleExpansion(item.node.id) }
                 )
@@ -104,8 +106,7 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
         }
 
         // 2. The Keyboard Toolbar
-        // Logic: Only exist if the keyboard is up AND we know what node to edit
-        if (isKeyboardVisible && state.focusedNodeId != null) {
+        if (isKeyboardActive && state.focusedNodeId != null) {
             ControlBar(
                 onIndent = { viewModel.indentFocusedNode() },
                 onOutdent = { viewModel.outdentFocusedNode() },
@@ -120,20 +121,31 @@ fun ChartlyScreen(viewModel: ChartlyViewModel) {
 }
 
 @OptIn(ExperimentalLayoutApi::class)
+val WindowInsets.Companion.isImeActive: Boolean
+    @Composable
+    get() {
+        val density = LocalDensity.current
+        val isVisible = isImeVisible
+        val isAnimatingOut = imeAnimationTarget.getBottom(density) == 0
+        return isVisible && !isAnimatingOut
+    }
+
 @Composable
 fun ChartlyRow(
     flattenedNode: FlattenedNode,
     onFocused: () -> Unit,
+    onFocusCleared: () -> Unit,
     onContentChange: (String) -> Unit,
     onToggleExpand: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
-    val isKeyboardVisible = WindowInsets.isImeVisible
+    val isKeyboardActive = WindowInsets.isImeActive
 
-    LaunchedEffect(isKeyboardVisible) {
-        if (!isKeyboardVisible) {
-            // If the keyboard was closed (by any means), remove the cursor
+    // Force clear focus the moment the system intends to hide the keyboard
+    LaunchedEffect(isKeyboardActive) {
+        if (!isKeyboardActive) {
             focusManager.clearFocus()
+            onFocusCleared()
         }
     }
 
@@ -169,9 +181,11 @@ fun ChartlyRow(
         }
 
         // 2. The Bullet (Canvas)
-        Canvas(modifier = Modifier
-            .padding(end = 12.dp)
-            .size(8.dp)) {
+        Canvas(
+            modifier = Modifier
+                .padding(end = 12.dp)
+                .size(8.dp)
+        ) {
             drawCircle(color = Color.Gray)
         }
 
